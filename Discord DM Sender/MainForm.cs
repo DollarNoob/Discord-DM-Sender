@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
@@ -59,25 +59,7 @@ namespace Discord_DM_Sender
                 {
                     DMButton.Enabled = false;
                     if (InviteTextBox.Text.Contains("/")) InviteTextBox.Text = InviteTextBox.Text.Split('/').Last();
-                    WebClient _WC = new WebClient();
-                    _WC.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36";
-                    LogListBox.Items.Add("Receiving Cookies...");
-                    await _WC.DownloadStringTaskAsync("https://discord.com/");
-                    string Cookie = string.Empty;
-                    for (int i = 0; i < _WC.ResponseHeaders.Count; i++)
-                    {
-                        if (_WC.ResponseHeaders.GetKey(i) == "Set-Cookie")
-                        {
-                            if (_WC.ResponseHeaders.GetValues(i).Length < 2) throw new Exception("Not enough cookies were received. Please restart and try again.");
-                            if (_WC.ResponseHeaders.GetValues(i).Length > 2) throw new Exception("Too many cookies were received. Please restart and try again.");
-                            foreach (string CookieValue in _WC.ResponseHeaders.GetValues(i))
-                            {
-                                Cookie += CookieValue.Split(' ')[0] + " ";
-                            }
-                        }
-                    }
-                    if (Cookie == string.Empty) throw new Exception("No cookie was received. Please try again.");
-                    Cookie += "locale=en-US";
+                    string Cookie = ReceiveCookie();
                     string[] Tokens = File.ReadAllLines(TokensTextBox.Text);
                     LogListBox.Items.Add("Loaded " + Tokens.Length + " Tokens!");
                     string[] UserIDs = IDTextBox.Text.Split('|');
@@ -92,6 +74,7 @@ namespace Discord_DM_Sender
                         {
                             if (i % DMNumericUpDown.Value == 0)
                             {
+                                Cookie = ReceiveCookie();
                                 LogListBox.Items.Add("Joining Guild...");
                                 await WC(Token, Cookie, "https://discord.com/channels/@me", Convert.ToBase64String(Encoding.UTF8.GetBytes("{\"location\":\"Join Guild\",\"location_guild_id\":\"" + InviteData.Split('"')[9] + "\",\"location_channel_id\":\"" + InviteChannel[0] + "\",\"location_channel_type\":" + InviteChannel[7].Split('}')[0].Split(' ')[1] + "}"))).UploadStringTaskAsync("https://discord.com/api/v9/invites/" + InviteTextBox.Text, "POST", string.Empty);
                             }
@@ -109,6 +92,7 @@ namespace Discord_DM_Sender
                             }
                             else if (Exception.Message.ToString().Contains("401")) LogListBox.Items.Add("Invalid Token!");
                             else if (Exception.Message.ToString().Contains("403")) LogListBox.Items.Add("DM OFF '" + UserIDs[i] + "'!");
+                            else if (Exception.Message.ToString().Contains("500")) LogListBox.Items.Add("Unexpected Error!");
                             else
                             {
                                 LogListBox.Items.Add("Error '" + UserIDs[i] + "'!");
@@ -127,6 +111,37 @@ namespace Discord_DM_Sender
                 MessageBox.Show(Exception.Message.ToString(), "Discord DM Sender", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 DMButton.Enabled = true;
             }
+        }
+
+        private string ReceiveCookie()
+        {
+            WebClient _WC = new WebClient();
+            _WC.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36";
+            LogListBox.Items.Add("Receiving Cookies...");
+            string Cookie = string.Empty;
+            try
+            {
+                _WC.DownloadString("https://discord.com/");
+                for (int i = 0; i < _WC.ResponseHeaders.Count; i++)
+                {
+                    if (_WC.ResponseHeaders.GetKey(i) == "Set-Cookie")
+                    {
+                        if (_WC.ResponseHeaders.GetValues(i).Length < 2) throw new Exception("Not enough cookies were received. Please try again.");
+                        if (_WC.ResponseHeaders.GetValues(i).Length > 2) throw new Exception("Too many cookies were received. Please try again.");
+                        foreach (string CookieValue in _WC.ResponseHeaders.GetValues(i))
+                        {
+                            Cookie += CookieValue.Split(' ')[0] + " ";
+                        }
+                    }
+                }
+                if (Cookie == string.Empty) throw new Exception("No cookie was received. Please try again.");
+            }
+            catch (Exception Exception)
+            {
+                MessageBox.Show(Exception.Message.ToString(), "Discord DM Sender", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            Cookie += "locale=en-US";
+            return Cookie;
         }
 
         private void TokensBrowseButton_Click(object sender, EventArgs e)
