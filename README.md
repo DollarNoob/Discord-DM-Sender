@@ -8,4 +8,4 @@
 
 **" 이 소프트웨어의 사본 혹은 수정본을 판매하기 전에 미리 허락을 받아주세요 "**
 
-> 문의: [Calibration#7906](https://discord.gg/Uy8qfRJag6)
+> 문의: [Telegram @DollarNoob](https://t.me/DollarNoob)
